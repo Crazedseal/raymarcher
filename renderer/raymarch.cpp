@@ -14,6 +14,13 @@
 //#include <windows.h>
 #include <chrono>
 
+double fRand(double fMin, double fMax)
+{
+	double f = (double)rand() / RAND_MAX;
+	return fMin + f * (fMax - fMin);
+}
+
+// #define PI fRand(3, 4)
 #define PI 3.14159265
 
 using namespace vectors;
@@ -149,10 +156,11 @@ float sceneSDF(Vector3 location)
 #ifdef DEBUG
 	std::cout << location.x << "|" << location.y << "|" << location.z << "=" << location.length() << std::endl;
 #endif
-	float scale = 1.5f;
+	float scale = 4.0f;
 	Vector3 rotLoc = (rotY(-timee * 30) * Vector4d(location, 1.0)).toVector3() / scale;
 	return opExtrusion(rotLoc, sdArchLogo(Vector2d(-rotLoc.x, -rotLoc.y)), 0.1f) * scale;
 	//return opExtrusion(rotLoc, sdHexagram(Vector2d(-rotLoc.x, -rotLoc.y)), 0.1f) * scale;
+	//return cubeSDF(rotLoc);
 }
 
 Vector3 rayDirection(float fieldOfView, Vector2d size, Vector2d fragCoord)
@@ -311,14 +319,19 @@ Matrix4 viewMatrix(Vector3 eye, Vector3 center, Vector3 up)
 		Vector4d(0.0, 0.0, 0.0, 1));
 }
 
+Vector3 rotVec3Z(Vector3 v, float angle)
+{
+	return (rotZ(angle) * Vector4d(v, 1.0)).toVector3();
+}
+
 Vector3 mainImage(Vector2d frag)
 {
 	Vector3 dir = rayDirection(45.0, RESOLUTION, frag);
-	Vector3 eye = Vector3(0.0, 0.0, 5.0);
+	Vector3 eye = Vector3(2.5, 0.0, 5.0);
 
-	Matrix4 viewToWorld = viewMatrix(eye, Vector3(0.0, 0.0, 0.0), Vector3(0.0, 1.0, 0.0));
+	Matrix4 viewToWorld = viewMatrix(eye, Vector3(2.5, 0.0, 0.0), Vector3(0.0, 1.0, 0.0));
 
-	//viewToWorld = viewToWorld * rotZ(45);
+	dir = rotVec3Z(dir, -90);
 
 	Vector3 worldDir = (viewToWorld * Vector4d(dir, 1.0)).toVector3();
 #ifdef DEBUG
