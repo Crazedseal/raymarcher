@@ -87,11 +87,11 @@ std::string generateFrame(int h, int w)
 	return frames;
 }
 
-std::string *generateFrame2(int h, int w)
+void generateFrame2(std::string* frames, int h, int w)
 {
 	// GC anus = create_gc(d, wind, 0);
 	//Pixmap frames = XCreatePixmap(d, wind, h, w, 8);
-	std::string *amogus = new std::string[h * w];
+	//std::string *amogus = new std::string[h * w];
 	for (int x = 0; x < h; x++) // we render every second pixel strip to compensate for windows being EXTREMELY idiotic and having line spacing
 	{
 		for (int y = 0; y < w; y++)
@@ -103,7 +103,7 @@ std::string *generateFrame2(int h, int w)
 			//COLORREF color = RGB(coler.x * 255, coler.y * 255, coler.z * 255);
 #ifndef DEBUG
 			std::string colerstr = "RGBi:" + std::to_string(coler.x) + "/" + std::to_string(coler.y) + "/" + std::to_string(coler.z);
-			amogus[x * w + y] = colerstr;
+			frames[x * w + y] = colerstr;
 
 #else
 			std::cout << std::endl;
@@ -111,8 +111,6 @@ std::string *generateFrame2(int h, int w)
 #endif
 		}
 	}
-	//return frames;
-	return amogus;
 }
 
 std::map<std::string, std::vector<XPoint>> generateColourLayers(std::string *colourData, int h, int w)
@@ -125,17 +123,11 @@ std::map<std::string, std::vector<XPoint>> generateColourLayers(std::string *col
 			if (hatred.find(colourData[x * w + y]) == hatred.end())
 			{
 				hatred.insert(std::pair<std::string, std::vector<XPoint>>(colourData[x * w + y], std::vector<XPoint>()));
-				std::vector<XPoint> vec = hatred[colourData[x * w + y]];
-				XPoint kill = {short(x), short(y)};
-				vec.push_back(kill);
-				hatred[colourData[x * w + y]].swap(vec);
+				hatred[colourData[x * w + y]].push_back({short(x), short(y)});
 			}
 			else
 			{
-				std::vector<XPoint> vec = hatred[colourData[x * w + y]];
-				XPoint kill = {short(x), short(y)};
-				vec.push_back(kill);
-				hatred[colourData[x * w + y]].swap(vec);
+				hatred[colourData[x * w + y]].push_back({short(x), short(y)});
 			}
 		}
 	}
@@ -173,6 +165,7 @@ int windowRender()
 {
 	// Open a display.
 	Display *d = XOpenDisplay(0);
+	std::cout << "Hello world" << std::endl;
 
 	if (d)
 	{
@@ -202,19 +195,21 @@ int windowRender()
 		w = RESOLUTION.x;
 		h = RESOLUTION.y;
 
+		std::string* frames = new std::string[h*w];
+
 		// Sleep long enough to see the window.
 		while (true)
 		{
 			//generateFrame2(d, w, gc, cm, RESOLUTION.x, RESOLUTION.y);
 			start = std::chrono::system_clock::now();
 			frame(fps);
-			std::future<std::string *> fut = std::async(generateFrame2, h, w);
+			std::future<void> fut = std::async(generateFrame2, frames, h, w);
 			fut.wait();
-			std::string *mogus = fut.get();
+			
 			auto end = std::chrono::system_clock::now();
 			std::chrono::duration<double> elapsed_seconds = end - start;
 			fps = (int)floor(1 / elapsed_seconds.count());
-			renderFrame(d, wind, gc, cm, h, w, generateColourLayers(mogus, h, w));
+			renderFrame(d, wind, gc, cm, h, w, generateColourLayers(frames, h, w));
 			XColor colero;
 			XAllocNamedColor(d, cm, "white", &colero, &colero);
 			XSetForeground(d, gc, colero.pixel);
