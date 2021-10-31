@@ -105,6 +105,25 @@ void generateSFMLFrame(uint32_t* array, int h, int w) {
 	}
 }
 
+void generateSFMLFrameEx(uint8_t* array, int height, int width) {
+	for (int x = 0; x < width; x++) // we render every second pixel strip to compensate for windows being EXTREMELY idiotic and having line spacing
+	{
+		for (int y = 0; y < height; y++)
+		{
+			const int position = (x + y * width) * 4;
+			const vectors::Vector3 coler = mainImage(vectors::Vector2d(y + 1, x + 1));
+			array[position]   = (uint8_t)floor(coler.x * 255); 
+			array[position+1] = (uint8_t)floor(coler.y * 255);
+			array[position+2] = (uint8_t)floor(coler.z * 255);
+			array[position+3] = 255;
+		}
+	}
+}
+
+inline void renderSFMLFrameEx(uint8_t* array, sf::Texture& out) {
+	out.update(array);
+}
+
 std::unordered_map<uint32_t, std::vector<sf::Vector2i>> generateColourLayers(
 	uint32_t* array, int h, int w
 ) {
@@ -116,14 +135,15 @@ std::unordered_map<uint32_t, std::vector<sf::Vector2i>> generateColourLayers(
 			if (hatred.find(array[x * w + y]) == hatred.end())
 			{
 				hatred.insert({
-					array[w*w+y],
+					array[x*w+y],
 					std::vector<sf::Vector2i>()
 				});
 				hatred[array[x * w + y]].push_back({short(x), short(y)});
 			}
 			else
 			{
-				hatred[array[x * w + y]].push_back({short(x), short(y)});
+				hatred[array[x * w + y]].push_back(
+					{ short(x), short(y) } );
 			}
 		}
 	}
@@ -138,7 +158,7 @@ sf::Sprite renderSFMLFrame(std::unordered_map<uint32_t, std::vector<sf::Vector2i
 			img.setPixel(pixel.x, pixel.y, colour);
 		}
 	}
-
+	
 	texture.loadFromImage(img);
 	return sf::Sprite(texture);
 }
@@ -257,23 +277,30 @@ int windowRender()
 		w = RESOLUTION.x;
 		h = RESOLUTION.y;
 
-		sf::RenderWindow SFMLView(wind);
+		std::cout << "w: " << w << " | h: " << h << std::endl;
 
-		std::string* _drawFrame = new std::string[w*h];
-		uint32_t* sfmlFrame = new uint32_t[w*h];
+		sf::RenderWindow SFMLView(wind);
+		
+		//uint32_t* sfmlFrame = new uint32_t[w*h];
+		sf::Uint8* sfmlFrame = new sf::Uint8[w*h*4];
 		sf::Image renderImage;
+		sf::Sprite renderSprite;
 		sf::Texture renderTexture;
+		renderTexture.create(w, h);
 		
 		// Sleep long enough to see the window.
 		while (true)
 		{
 			start = std::chrono::system_clock::now();
 			frame(fps);
-			generateSFMLFrame(sfmlFrame, h, w);
-			sf::Sprite renderSprite = renderSFMLFrame(
+			//generateSFMLFrame(sfmlFrame, h, w);
+			generateSFMLFrameEx(sfmlFrame, h, w);
+			renderSFMLFrameEx(sfmlFrame, renderTexture);
+			/*sf::Sprite renderSprite = renderSFMLFrame(
 				generateColourLayers(sfmlFrame, h, w),
 				w, h, renderImage, renderTexture
-			);
+			);*/
+			renderSprite = sf::Sprite(renderTexture);
 
 			auto end = std::chrono::system_clock::now();
 			std::chrono::duration<double> elapsed_seconds = end - start;
